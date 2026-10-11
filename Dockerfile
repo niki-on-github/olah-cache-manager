@@ -2,7 +2,7 @@
 # cache-eviction primitives (olah.utils.disk_utils). Pinned to the same digest the
 # olah mirror deployment runs; Renovate keeps it current.
 # renovate: datasource=docker depName=xiahan2019/olah
-FROM docker.io/xiahan2019/olah:0.5.1@sha256:da77e6de1aa50bf5ec2e2c2d66a36f35b33645ce4ed6d802179882dd64803bec
+FROM docker.io/xiahan2019/olah:0.5.4@sha256:3cb705a004bcedb63d7cc021fe9de0f9506ed768369aed92eb510fb6b51da2a2
 
 LABEL org.opencontainers.image.title="olah-cache-manager" \
       org.opencontainers.image.description="Web UI to list and delete olah HuggingFace mirror cache entries" \
