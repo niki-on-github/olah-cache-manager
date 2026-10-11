@@ -21,7 +21,12 @@
     table { width:100%; border-collapse:collapse; margin-top:12px; }
     th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
     th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; }
-    td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    th[data-key] { cursor:pointer; user-select:none; white-space:nowrap; }
+    th[data-key]:hover { color:var(--ink); }
+    th[data-key]::after { content:"\2195"; opacity:.3; margin-left:6px; font-size:.75em; }
+    th[data-key].asc::after { content:"\25B2"; opacity:.9; }
+    th[data-key].desc::after { content:"\25BC"; opacity:.9; }
+    td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem;
            background:var(--panel); border:1px solid var(--line); color:var(--muted); }
     .name { font-weight:600; word-break:break-word; }
@@ -55,14 +60,18 @@
     <table>
       <thead>
         <tr>
-          <th>Repository</th><th>Type</th>
-          <th class="num">Size</th><th class="num">Entries</th>
-          <th>Last access</th><th></th>
+          <th data-key="name" data-type="text" onclick="sortTable(this)">Repository</th>
+          <th data-key="type" data-type="text" onclick="sortTable(this)">Type</th>
+          <th class="num" data-key="size" data-type="num" onclick="sortTable(this)">Size</th>
+          <th class="num" data-key="entries" data-type="num" onclick="sortTable(this)">Entries</th>
+          <th class="num" data-key="mtime" data-type="num" onclick="sortTable(this)">Last access</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for r in repos %}
-        <tr data-type="{{ r.type }}" data-org="{{ r.org }}" data-repo="{{ r.repo }}" data-size="{{ r.size }}">
+        <tr data-type="{{ r.type }}" data-org="{{ r.org }}" data-repo="{{ r.repo }}"
+            data-name="{{ r.path }}" data-size="{{ r.size }}" data-entries="{{ r.entries }}" data-mtime="{{ r.mtime }}">
           <td class="name">{{ r.path }}</td>
           <td><span class="tag">{{ r.type }}</span></td>
           <td class="num">{{ r.size_h }}</td>
@@ -79,11 +88,41 @@
     </table>
     <div class="totals">Total cached: {{ total_h }}</div>
     {% else %}
-    <div class="empty">No cached repositories found under <code>{{ repos_path }}/api</code>.</div>
+    <div class="empty">No cached repositories found under <code>{{ repos_path }}</code>.</div>
     {% endif %}
   </div>
 
   <script>
+    function sortTable(th) {
+      const tbody = document.querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const key = th.dataset.key;
+      const numeric = th.dataset.type === "num";
+      const dir = th.dataset.dir === "asc" ? "desc" : "asc";
+
+      document.querySelectorAll("th[data-key]").forEach((h) => {
+        if (h !== th) { h.dataset.dir = ""; h.classList.remove("asc", "desc"); }
+      });
+      th.dataset.dir = dir;
+      th.classList.toggle("asc", dir === "asc");
+      th.classList.toggle("desc", dir === "desc");
+
+      rows.sort((a, b) => {
+        let x, y;
+        if (numeric) {
+          x = parseFloat(a.dataset[key]) || 0;
+          y = parseFloat(b.dataset[key]) || 0;
+        } else {
+          x = (a.dataset[key] || "").toLowerCase();
+          y = (b.dataset[key] || "").toLowerCase();
+        }
+        if (x < y) return dir === "asc" ? -1 : 1;
+        if (x > y) return dir === "asc" ? 1 : -1;
+        return 0;
+      });
+      rows.forEach((r) => tbody.appendChild(r));
+    }
+
     async function del(btn) {
       const tr = btn.closest("tr");
       const repo = tr.dataset.org + "/" + tr.dataset.repo;

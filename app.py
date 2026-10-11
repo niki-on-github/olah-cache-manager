@@ -125,6 +125,7 @@ def list_repos() -> List[Dict]:
                 "path": f"{org}/{repo}",
                 "size": e["size"],
                 "size_h": convert_bytes_to_human_readable(e["size"]),
+                "mtime": e["mtime"],
                 "mtime_h": _human_time(e["mtime"]),
                 "entries": e["entries"],
                 "files": e["files"],
