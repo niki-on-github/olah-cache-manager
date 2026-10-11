@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard"
+  ],
+  "packageRules": [
+    {
+      "description": "Keep the olah base image and the mirror deployment in lockstep",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["xiahan2019/olah"],
+      "groupName": "olah base image"
+    }
+  ]
+}

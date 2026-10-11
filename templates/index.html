@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>olah cache manager</title>
+  <style>
+    :root { --bg:#0f1512; --panel:#161f1a; --line:#243029; --ink:#e8efe9; --muted:#9fb0a5;
+            --accent:#df875f; --danger:#d9534f; --ok:#4caf7d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+           font:15px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif; }
+    .wrap { max-width:1080px; margin:0 auto; padding:32px 20px 64px; }
+    header { display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; justify-content:space-between; }
+    h1 { font-size:1.5rem; margin:0; }
+    .meta { color:var(--muted); font-size:.9rem; }
+    .meta code { background:var(--panel); padding:2px 6px; border-radius:6px; }
+    .banner { margin:20px 0 8px; padding:12px 16px; border-radius:10px; border:1px solid var(--line);
+              background:var(--panel); color:var(--muted); }
+    .banner.warn { border-color:#5a3a2a; color:#f0c9b4; background:#241812; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem;
+           background:var(--panel); border:1px solid var(--line); color:var(--muted); }
+    .name { font-weight:600; word-break:break-word; }
+    button.del { background:transparent; color:var(--danger); border:1px solid var(--danger);
+                 padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+    button.del:hover { background:var(--danger); color:#fff; }
+    button.del:disabled { opacity:.4; cursor:not-allowed; }
+    .empty { color:var(--muted); padding:24px 0; }
+    .totals { margin-top:16px; color:var(--muted); }
+    .flash { margin-left:12px; font-size:.9rem; }
+    .flash.ok { color:var(--ok); } .flash.err { color:var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>olah cache manager</h1>
+        <div class="meta">cache root <code>{{ repos_path }}</code> &middot; {{ repos|length }} repos &middot; {{ total_h }}</div>
+      </div>
+      <div><a href="/" style="color:var(--accent);text-decoration:none">&#x21bb; refresh</a></div>
+    </header>
+
+    {% if not delete_enabled %}
+    <div class="banner warn">Deletion is disabled. Set <code>MANAGER_DELETE_ENABLED=true</code> to enable the delete buttons.</div>
+    {% else %}
+    <div class="banner">Deleting a repo evicts its cached entries and API metadata. olah re-downloads it on the next request.</div>
+    {% endif %}
+
+    {% if repos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Repository</th><th>Type</th>
+          <th class="num">Size</th><th class="num">Entries</th>
+          <th>Last access</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in repos %}
+        <tr data-type="{{ r.type }}" data-org="{{ r.org }}" data-repo="{{ r.repo }}" data-size="{{ r.size }}">
+          <td class="name">{{ r.path }}</td>
+          <td><span class="tag">{{ r.type }}</span></td>
+          <td class="num">{{ r.size_h }}</td>
+          <td class="num">{{ r.entries }}</td>
+          <td class="num">{{ r.mtime_h }}</td>
+          <td class="num">
+            <button class="del" {% if not delete_enabled %}disabled{% endif %}
+                    onclick="del(this)">Delete</button>
+            <span class="flash"></span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="totals">Total cached: {{ total_h }}</div>
+    {% else %}
+    <div class="empty">No cached repositories found under <code>{{ repos_path }}/api</code>.</div>
+    {% endif %}
+  </div>
+
+  <script>
+    async function del(btn) {
+      const tr = btn.closest("tr");
+      const repo = tr.dataset.org + "/" + tr.dataset.repo;
+      if (!confirm("Delete cached repo \"" + repo + "\"?\n\nIt will be re-downloaded on next use.")) return;
+      const flash = tr.querySelector(".flash");
+      btn.disabled = true;
+      flash.className = "flash";
+      flash.textContent = "…";
+      try {
+        const body = new URLSearchParams({
+          rtype: tr.dataset.type, org: tr.dataset.org, repo: tr.dataset.repo,
+        });
+        const res = await fetch("/delete", { method: "POST", body });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || res.statusText);
+        flash.className = "flash ok";
+        flash.textContent = "freed " + data.freed_h +
+          (data.skipped_busy ? " (" + data.skipped_busy + " busy, skipped)" : "");
+        tr.remove();
+      } catch (err) {
+        flash.className = "flash err";
+        flash.textContent = String(err.message || err);
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
