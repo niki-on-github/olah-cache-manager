@@ -13,9 +13,10 @@ actually need.
 
 ## What it does
 
-- Lists cached repos under `<repos-path>/api/{models,datasets,spaces}/<org>/<repo>`
-  with **size**, **entry count**, and **last access** (the same `meta.lock` mtime
-  signal olah's LRU eviction sorts on).
+- Lists cached repos across both olah trees — `api/{models,datasets,spaces}/<org>/<repo>`
+  (API metadata) and `files/{models,datasets,spaces}/<org>/<repo>` (the file/block
+  cache, i.e. the bulk) — with **size**, **entry count**, and **last access** (the
+  newest `meta.lock`/file mtime, the same signal olah's LRU eviction sorts on).
 - `POST /delete` evicts a repo **using olah's own eviction primitives**, so the
   behaviour is identical to olah's own cleanup:
   - whole cache **entries** (dirs containing `meta.bin`) are removed — never
