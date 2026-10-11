@@ -6,6 +6,8 @@
     "helpers:pinGitHubActionDigests",
     ":dependencyDashboard"
   ],
+  "automerge": true,
+  "platformAutomerge": true,
   "packageRules": [
     {
       "description": "Keep the olah base image and the mirror deployment in lockstep",
